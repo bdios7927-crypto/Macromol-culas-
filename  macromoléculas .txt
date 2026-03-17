@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macromoléculas - Presentación</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #050508;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            height: 100vh;
+        }
+        .title-font { font-family: 'Orbitron', sans-serif; }
+        
+        /* Fondo animado */
+        .bg-animated {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255,107,53,0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0,212,255,0.2) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(184,41,221,0.15) 0%, transparent 50%);
+            animation: pulse 8s ease-in-out infinite;
+            z-index: 0;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        
+        /* Contenedor */
+        .container {
+            position: relative;
+            z-index: 10;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 20px;
+        }
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 4rem);
+            color: #00d4ff;
+            text-shadow: 0 0 30px #00d4ff;
+            margin-bottom: 10px;
+        }
+        
+        /* Molécula 3D Canvas */
+        .molecule-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        canvas {
+            max-width: 100%;
+            max-height: 50vh;
+        }
+        
+        /* Info Panel */
+        .info-panel {
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+        
+        .molecule-name {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            font-weight: 900;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .formula {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        
+        .description {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        
+        /* Controles */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+        
+        /* Barra de progreso */
+        .progress-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            z-index: 100;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b35, #b829dd, #00d4ff);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .info-panel { padding: 20px; }
+            .btn { width: 50px; height: 50px; font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animated"></div>
+    <div class="progress-container">
+        <div class="progress-bar" id="progress"></div>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1 class="title-font">MACROMOLÉCULAS BIOLÓGICAS</h1>
+            <p style="opacity: 0.8; font-size: 1.1rem;">Lípidos • Proteínas • Ácidos Nucleicos</p>
+        </div>
+        
+        <div class="molecule-container">
+            <canvas id="moleculeCanvas" width="600" height="500"></canvas>
+        </div>
+        
+        <div class="info-panel" id="infoPanel">
+            <div class="badge" id="typeBadge">Lípido</div>
+            <h2 class="molecule-name title-font" id="molName" style="color: #ff6b35;">Triglicérido</h2>
+            <div class="formula" id="molFormula" style="color: #ff8c5a; border-left: 4px solid #ff6b35;">Glicerol + 3 Ácidos grasos</div>
+            <p class="description" id="molDesc">Principal forma de almacenamiento de energía en animales. Hidrofóbico y energía-denso (9 kcal/g).</p>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="prevMol()">◀</button>
+            <button class="btn" onclick="togglePlay()" id="playBtn">⏸</button>
+            <button class="btn" onclick="nextMol()">▶</button>
+        </div>
+    </div>
+
+    <script>
+        // ========== DATOS DE LAS 6 MOLÉCULAS ==========
+        const molecules = [
+            {
+                type: "Lípido",
+                color: "#ff6b35",
+                bg: "rgba(255,107,53,0.3)",
+                name: "Triglicérido",
+                formula: "Glicerol + 3 Ácidos grasos",
+                desc: "Principal forma de almacenamiento de energía. Hidrofóbico y energía-denso (9 kcal/g).",
+                draw: (ctx, time) => drawTriglyceride(ctx, time)
+            },
+            {
+                type: "Lípido",
+                color: "#ff6b35",
+                bg: "rgba(255,107,53,0.3)",
+                name: "Fosfolípido",
+                formula: "Cabeza polar + 2 Colas",
+                desc: "Componente de membranas. Estructura anfipática con bicapa lipídica.",
+                draw: (ctx, time) => drawPhospholipid(ctx, time)
+            },
+            {
+                type: "Proteína",
+                color: "#b829dd",
+                bg: "rgba(184,41,221,0.3)",
+                name: "Hélice Alfa",
+                formula: "Estructura secundaria α",
+                desc: "Espiral estabilizada por puentes de hidrógeno. 3.6 aminoácidos por vuelta.",
+                draw: (ctx, time) => drawHelix(ctx, time)
+            },
+            {
+                type: "Proteína",
+                color: "#b829dd",
+                bg: "rgba(184,41,221,0.3)",
+                name: "Proteína 3D",
+                formula: "Plegamiento funcional",
+                desc: "Estructura terciaria con puentes disulfuro e interacciones hidrofóbicas.",
+                draw: (ctx, time) => drawProtein3D(ctx, time)
+            },
+            {
+                type: "Ácido Nucleico",
+                color: "#00d4ff",
+                bg: "rgba(0,212,255,0.3)",
+                name: "ADN",
+                formula: "Doble hélice",
+                desc: "Portador de información genética. Cadenas antiparalelas con bases A-T, G-C.",
+                draw: (ctx, time) => drawDNA(ctx, time)
+            },
+            {
+                type: "Ácido Nucleico",
+                color: "#00d4ff",
+                bg: "rgba(0,212,255,0.3)",
+                name: "ARN",
+                formula: "Cadena simple",
+                desc: "Transporta información del ADN a ribosomas. Contiene uracilo y ribosa.",
+                draw: (ctx, time) => drawRNA(ctx, time)
+            }
+        ];
+
+        let current = 0;
+        let isPlaying = true;
+        let lastTime = 0;
+        let autoPlayTimer = 0;
+        const SLIDE_DURATION = 10000; // 10 segundos
+
+        const canvas = document.getElementById('moleculeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ========== FUNCIONES DE DIBUJO ==========
+        function drawAtom(ctx, x, y, z, color, size, label) {
+            // Proyección 3D simple
+            const scale = 300 / (300 + z);
+            const x2d = x * scale + canvas.width/2;
+            const y2d = y * scale + canvas.height/2;
+            const size2d = size * scale;
+            
+            // Sombra
+            ctx.beginPath();
+            ctx.arc(x2d + 3, y2d + 3, size2d, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fill();
+            
+            // Átomo
+            const gradient = ctx.createRadialGradient(x2d - size2d/3, y2d - size2d/3, 0, x2d, y2d, size2d);
+            gradient.addColorStop(0, '#fff');
+            gradient.addColorStop(0.3, color);
+            gradient.addColorStop(1, color);
+            
+            ctx.beginPath();
+            ctx.arc(x2d, y2d, size2d, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Brillo
+            ctx.beginPath();
+            ctx.arc(x2d - size2d/3, y2d - size2d/3, size2d/4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.fill();
+        }
+
+        function drawBond(ctx, x1, y1, z1, x2, y2, z2, color) {
+            const scale1 = 300 / (300 + z1);
+            const scale2 = 300 / (300 + z2);
+            const x1_2d = x1 * scale1 + canvas.width/2;
+            const y1_2d = y1 * scale1 + canvas.height/2;
+            const x2_2d = x2 * scale2 + canvas.width/2;
+            const y2_2d = y2 * scale2 + canvas.height/2;
+            
+            ctx.beginPath();
+            ctx.moveTo(x1_2d, y1_2d);
+            ctx.lineTo(x2_2d, y2_2d);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+
+        // ========== ESTRUCTURAS MOLECULARES ==========
+        function drawTriglyceride(ctx, time) {
+            const rot = time * 0.001;
+            
+            // Glicerol (3 carbonos en línea)
+            for (let i = 0; i < 3; i++) {
+                const x = (i - 1) * 60;
+                const y = Math.sin(rot + i) * 20;
+                const z = Math.cos(rot + i) * 20;
+                drawAtom(ctx, x, y, z, '#00d4ff', 15, 'C');
+                
+                if (i > 0) {
+                    const prevX = ((i-1) - 1) * 60;
+                    const prevY = Math.sin(rot + (i-1)) * 20;
+                    const prevZ = Math.cos(rot + (i-1)) * 20;
+                    drawBond(ctx, prevX, prevY, prevZ, x, y, z, '#666');
+                }
+                
+                // Cadenas de ácidos grasos
+                for (let j = 0; j < 5; j++) {
+                    const chainX = x + Math.sin(rot * 0.5 + j + i) * (20 + j * 5);
+                    const chainY = y + 40 + j * 35;
+                    const chainZ = z + Math.cos(rot * 0.3 + j) * 15;
+                    drawAtom(ctx, chainX, chainY, chainZ, '#ff6b35', 12, 'C');
+                    
+                    if (j === 0) {
+                        drawBond(ctx, x, y, z, chainX, chainY, chainZ, '#ff3333');
+                    } else {
+                        const prevChainX = x + Math.sin(rot * 0.5 + (j-1) + i) * (20 + (j-1) * 5);
+                        const prevChainY = y + 40 + (j-1) * 35;
+                        const prevChainZ = z + Math.cos(rot * 0.3 + (j-1)) * 15;
+                        drawBond(ctx, prevChainX, prevChainY, prevChainZ, chainX, chainY, chainZ, '#ff6b35');
+                    }
+                }
+            }
+        }
+
+        function drawPhospholipid(ctx, time) {
+            const rot = time * 0.001;
+            
+            // Cabeza polar (fosfato)
+            const headX = Math.sin(rot) * 30;
+            const headY = -80;
+            const headZ = Math.cos(rot) * 30;
+            drawAtom(ctx, headX, headY, headZ, '#ffd700', 20, 'P');
+            
+            // Glicerol
+            drawAtom(ctx, 0, -40, 0, '#00d4ff', 15, 'C');
+            drawBond(ctx, headX, headY, headZ, 0, -40, 0, '#888');
+            
+            // Dos colas
+            [-1, 1].forEach((dir, idx) => {
+                for (let i = 0; i < 6; i++) {
+                    const x = dir * 40 + Math.sin(rot + i * 0.5) * 10;
+                    const y = i * 30;
+                    const z = Math.cos(rot + i * 0.3 + idx) * 20;
+                    drawAtom(ctx, x, y, z, '#ff6b35', 12, 'C');
+                    
+                    if (i === 0) {
+                        drawBond(ctx, 0, -40, 0, x, y, z, '#ff3333');
+                    } else {
+                        const prevX = dir * 40 + Math.sin(rot + (i-1) * 0.5) * 10;
+                        const prevY = (i-1) * 30;
+                        const prevZ = Math.cos(rot + (i-1) * 0.3 + idx) * 20;
+                        drawBond(ctx, prevX, prevY, prevZ, x, y, z, '#ff6b35');
+                    }
+                }
+            });
+        }
+
+        function drawHelix(ctx, time) {
+            const rot = time * 0.001;
+            
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 3.6) * Math.PI * 2 + rot;
+                const y = (i - 6) * 25;
+                const x = Math.cos(angle) * 60;
+                const z = Math.sin(angle) * 60;
+                
+                // Átomo central
+                drawAtom(ctx, x, y, z, '#b829dd', 14, 'C');
+                
+                // Cadena lateral
+                const sideX = x * 1.4;
+                const sideZ = z * 1.4;
+                drawAtom(ctx, sideX, y, sideZ, '#d855f0', 10, 'R');
+                drawBond(ctx, x, y, z, sideX, y, sideZ, '#888');
+                
+                // Puentes de hidrógeno (cada 4 residuos)
+                if (i > 3) {
+                    const prevAngle = ((i-4) / 3.6) * Math.PI * 2 + rot;
+                    const prevY = ((i-4) - 6) * 25;
+                    const prevX = Math.cos(prevAngle) * 60;
+                    const prevZ = Math.sin(prevAngle) * 60;
+                    
+                    ctx.beginPath();
+                    const scale1 = 300 / (300 + z);
+                    const scale2 = 300 / (300 + prevZ);
+                    ctx.moveTo(x * scale1 + canvas.width/2, y * scale1 + canvas.height/2);
+                    ctx.lineTo(prevX * scale2 + canvas.width/2, prevY * scale2 + canvas.height/2);
+                    ctx.strokeStyle = 'rgba(0,212,255,0.4)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+        }
+
+        function drawProtein3D(ctx, time) {
+            const rot = time * 0.0008;
+            const points = [];
+            
+            // Generar puntos de proteína plegada
+            for (let i = 0; i < 20; i++) {
+                const t = i / 20;
+                const x = Math.sin(t * Math.PI * 4 + rot) * 80 + Math.cos(t * Math.PI * 2) * 40;
+                const y = Math.cos(t * Math.PI * 3 + rot * 0.5) * 60;
+                const z = Math.sin(t * Math.PI * 5) * 50;
+                points.push({x, y, z});
+                
+                const colors = ['#b829dd', '#d855f0', '#9a1fc0'];
+                drawAtom(ctx, x, y, z, colors[i % 3], 12, 'AA');
+                
+                if (i > 0) {
+                    drawBond(ctx, points[i-1].x, points[i-1].y, points[i-1].z, x, y, z, '#666');
+                }
+            }
+            
+            // Puente disulfuro
+            drawAtom(ctx, points[4].x, points[4].y + 20, points[4].z, '#ffd700', 14, 'S');
+            drawAtom(ctx, points[16].x, points[16].y - 20, points[16].z, '#ffd700', 14, 'S');
+        }
+
+        function drawDNA(ctx, time) {
+            const rot = time * 0.001;
+            
+            for (let i = 0; i < 10; i++) {
+                const angle = (i / 10) * Math.PI * 4 + rot;
+                const y = (i - 5) * 30;
+                
+                // Cadena 1
+                const x1 = Math.cos(angle) * 50;
+                const z1 = Math.sin(angle) * 50;
+                drawAtom(ctx, x1, y, z1, '#ffd700', 12, 'P');
+                
+                // Cadena 2 (antiparalela)
+                const x2 = Math.cos(angle + Math.PI) * 50;
+                const z2 = Math.sin(angle + Math.PI) * 50;
+                drawAtom(ctx, x2, y, z2, '#ffd700', 12, 'P');
+                
+                // Bases (conexión)
+                const bx1 = Math.cos(angle) * 25;
+                const bz1 = Math.sin(angle) * 25;
+                const bx2 = Math.cos(angle + Math.PI) * 25;
+                const bz2 = Math.sin(angle + Math.PI) * 25;
+                
+                const baseColors = ['#ff6b35', '#00d4ff'];
+                drawAtom(ctx, bx1, y, bz1, baseColors[i % 2], 10, 'B');
+                drawAtom(ctx, bx2, y, bz2, baseColors[(i+1) % 2], 10, 'B');
+                
+                // Puente de hidrógeno
+                ctx.beginPath();
+                const scale = 300 / (300 + bz1);
+                ctx.moveTo(bx1 * scale + canvas.width/2, y * scale + canvas.height/2);
+                ctx.lineTo(bx2 * scale + canvas.width/2, y * scale + canvas.height/2);
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        }
+
+        function drawRNA(ctx, time) {
+            const rot = time * 0.001;
+            
+            for (let i = 0; i < 14; i++) {
+                let x, y, z;
+                
+                if (i < 7) {
+                    // Subida
+                    const angle = (i / 7) * Math.PI + rot;
+                    x = Math.cos(angle) * 40;
+                    y = (i - 7) * 25;
+                    z = Math.sin(angle) * 40;
+                } else {
+                    // Bajada (hairpin)
+                    const angle = ((14-i) / 7) * Math.PI + rot;
+                    x = Math.cos(angle) * 40;
+                    y = (i - 7) * 25;
+                    z = -Math.sin(angle) * 40;
+                }
+                
+                drawAtom(ctx, x, y, z, '#00d4ff', 12, 'R');
+                
+                if (i > 0) {
+                    // Conectar con anterior
+                    // (simplificado para visualización)
+                }
+            }
+        }
+
+        // ========== CONTROL DE PRESENTACIÓN ==========
+        function updateDisplay() {
+            const mol = molecules[current];
+            
+            document.getElementById('typeBadge').textContent = mol.type;
+            document.getElementById('typeBadge').style.background = mol.bg;
+            document.getElementById('typeBadge').style.color = mol.color;
+            document.getElementById('typeBadge').style.border = `1px solid ${mol.color}`;
+            
+            document.getElementById('molName').textContent = mol.name;
+            document.getElementById('molName').style.color = mol.color;
+            
+            document.getElementById('molFormula').textContent = mol.formula;
+            document.getElementById('molFormula').style.color = mol.color;
+            document.getElementById('molFormula').style.borderLeft = `4px solid ${mol.color}`;
+            
+            document.getElementById('molDesc').textContent = mol.desc;
+            
+            // Reset timer
+            autoPlayTimer = 0;
+        }
+
+        function nextMol() {
+            current = (current + 1) % molecules.length;
+            updateDisplay();
+        }
+
+        function prevMol() {
+            current = (current - 1 + molecules.length) % molecules.length;
+            updateDisplay();
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            document.getElementById('playBtn').textContent = isPlaying ? '⏸' : '▶';
+        }
+
+        // ========== LOOP PRINCIPAL ==========
+        function animate(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const delta = timestamp - lastTime;
+            lastTime = timestamp;
+            
+            // Limpiar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dibujar molécula actual
+            molecules[current].draw(ctx, timestamp);
+            
+            // Auto-play
+            if (isPlaying) {
+                autoPlayTimer += delta;
+                const progress = (autoPlayTimer / SLIDE_DURATION) * 100;
+                document.getElementById('progress').style.width = progress + '%';
+                
+                if (autoPlayTimer >= SLIDE_DURATION) {
+                    nextMol();
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+
+        // Iniciar
+        updateDisplay();
+        animate(0);
+        
+        // Controles táctiles (swipe)
+        let touchStartX = 0;
+        canvas.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
+        canvas.addEventListener('touchend', e => {
+            const diff = touchStartX - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 50) {
+                diff > 0 ? nextMol() : prevMol();
+            }
+        });
+    </script>
+</body>
+</html>
